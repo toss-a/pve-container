@@ -19,6 +19,7 @@ use PVE::LXC::Setup::SUSE;
 use PVE::LXC::Setup::Ubuntu;
 use PVE::LXC::Setup::NixOS;
 use PVE::LXC::Setup::OpenEuler;
+use PVE::LXC::Setup::Oci;
 use PVE::LXC::Setup::Unmanaged;
 
 my $plugins = {
@@ -33,6 +34,7 @@ my $plugins = {
     opensuse => 'PVE::LXC::Setup::SUSE',
     ubuntu => 'PVE::LXC::Setup::Ubuntu',
     nixos => 'PVE::LXC::Setup::NixOS',
+    oci => 'PVE::LXC::Setup::Oci',
     unmanaged => 'PVE::LXC::Setup::Unmanaged',
 };
 
@@ -50,6 +52,10 @@ my $plugin_alias = {
 
 my $autodetect_type = sub {
     my ($self, $rootdir, $os_release) = @_;
+
+    if (-f "$rootdir/oci-config" || -d "$rootdir/apex") {
+        return "oci";
+    }
 
     if (my $id = $os_release->{ID}) {
         return $id if $plugins->{$id};
@@ -356,7 +362,9 @@ sub get_ct_os_release {
     my ($self) = @_;
 
     my $data = $self->protected_call(sub {
-        if (-f '/etc/os-release') {
+        if (-f '/oci-config') {
+            return "ID=oci";
+        } elsif (-f '/etc/os-release') {
             return PVE::Tools::file_get_contents('/etc/os-release');
         } elsif (-f '/usr/lib/os-release') {
             return PVE::Tools::file_get_contents('/usr/lib/os-release');
