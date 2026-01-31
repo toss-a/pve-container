@@ -21,6 +21,7 @@ use PVE::LXC::Setup::Ubuntu;
 use PVE::LXC::Setup::NixOS;
 use PVE::LXC::Setup::OpenEuler;
 use PVE::LXC::Setup::Unmanaged;
+use PVE::LXC::Setup::Oci;
 
 my $plugins = {
     alpine => 'PVE::LXC::Setup::Alpine',
@@ -35,6 +36,7 @@ my $plugins = {
     ubuntu => 'PVE::LXC::Setup::Ubuntu',
     nixos => 'PVE::LXC::Setup::NixOS',
     unmanaged => 'PVE::LXC::Setup::Unmanaged',
+    oci => 'PVE::LXC::Setup::Oci',
 };
 
 # a map to allow supporting related distro flavours
@@ -68,7 +70,9 @@ my $autodetect_type = sub {
         }
     }
 
-    if (-f "$rootdir/etc/debian_version") {
+    if (-d "$rootdir/apex") {
+        return "oci";
+    } elsif (-f "$rootdir/etc/debian_version") {
         return "debian";
     } elsif (-f "$rootdir/etc/devuan_version") {
         return "devuan";
@@ -371,7 +375,9 @@ sub get_ct_os_release {
     my ($self) = @_;
 
     my $data = $self->protected_call(sub {
-        if (-f '/etc/os-release') {
+        if (-f '/oci-config') {
+            return "ID=oci";
+        } elsif (-f '/etc/os-release') {
             return PVE::Tools::file_get_contents('/etc/os-release');
         } elsif (-f '/usr/lib/os-release') {
             return PVE::Tools::file_get_contents('/usr/lib/os-release');
